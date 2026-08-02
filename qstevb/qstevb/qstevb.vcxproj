@@ -1,0 +1,265 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{03D302DE-EC8C-4553-B65A-BB371DDDAEF6}</ProjectGuid>
+    <RootNamespace>qstevb</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <Keyword>MFCProj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <UseOfMfc>Static</UseOfMfc>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+    <UseOfMfc>Static</UseOfMfc>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <IncludePath>./CSerialPort/include;./ChartCtrl;./Sensor/qmc6309;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <IncludePath>./CSerialPort/include;./ChartCtrl;./Sensor/qmc6309;$(IncludePath)</IncludePath>
+    <IgnoreImportLibrary>false</IgnoreImportLibrary>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>.\CSerialPort\include;.\Algo\qst;.\Algo\imu_st;.\Sensor;.\Sensor\qmc6309;.\Algo\qst\dummy_gyro;.\Algo\qst\qst_convert;.\Algo\qst\qst_fusion;.\Algo\qst\qst_magcali;.\Algo\qst\qst_fastcali;.\usb_device</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>uafxcwd.lib;Libcmtd.lib;setupapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <IgnoreSpecificDefaultLibraries>uafxcw.lib;Libcmt.lib</IgnoreSpecificDefaultLibraries>
+    </Link>
+    <Midl>
+      <MkTypLibCompatible>false</MkTypLibCompatible>
+      <ValidateAllParameters>true</ValidateAllParameters>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </Midl>
+    <ResourceCompile>
+      <Culture>0x0804</Culture>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>.\CSerialPort\include;.\Algo\qst;.\Algo\imu_st;.\Sensor;.\Sensor\qmc6309;.\Algo\qst\dummy_gyro;.\Algo\qst\qst_convert;.\Algo\qst\qst_fusion;.\Algo\qst\qst_magcali;.\Algo\qst\qst_fastcali;.\usb_device;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>uafxcw.lib;Libcmt.lib;setupapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <IgnoreSpecificDefaultLibraries>uafxcwd.lib;Libcmtd.lib</IgnoreSpecificDefaultLibraries>
+      <AdditionalOptions>/SAFESEH:NO %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+    <Midl>
+      <MkTypLibCompatible>false</MkTypLibCompatible>
+      <ValidateAllParameters>true</ValidateAllParameters>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </Midl>
+    <ResourceCompile>
+      <Culture>0x0804</Culture>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <Text Include="ReadMe.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Algo\imu_st\imu_soft_st.h" />
+    <ClInclude Include="Algo\qst\fusion_interface.h" />
+    <ClInclude Include="Algo\qst\QstAlgoLog.h" />
+    <ClInclude Include="ChartCtrl\ChartAxis.h" />
+    <ClInclude Include="ChartCtrl\ChartAxisLabel.h" />
+    <ClInclude Include="ChartCtrl\ChartBalloonLabel.h" />
+    <ClInclude Include="ChartCtrl\ChartBarSerie.h" />
+    <ClInclude Include="ChartCtrl\ChartCandlestickSerie.h" />
+    <ClInclude Include="ChartCtrl\ChartCrossHairCursor.h" />
+    <ClInclude Include="ChartCtrl\ChartCtrl.h" />
+    <ClInclude Include="ChartCtrl\ChartCursor.h" />
+    <ClInclude Include="ChartCtrl\ChartDateTimeAxis.h" />
+    <ClInclude Include="ChartCtrl\ChartDragLineCursor.h" />
+    <ClInclude Include="ChartCtrl\ChartFont.h" />
+    <ClInclude Include="ChartCtrl\ChartGanttSerie.h" />
+    <ClInclude Include="ChartCtrl\ChartGradient.h" />
+    <ClInclude Include="ChartCtrl\ChartGrid.h" />
+    <ClInclude Include="ChartCtrl\ChartLabel.h" />
+    <ClInclude Include="ChartCtrl\ChartLegend.h" />
+    <ClInclude Include="ChartCtrl\ChartLineSerie.h" />
+    <ClInclude Include="ChartCtrl\ChartLogarithmicAxis.h" />
+    <ClInclude Include="ChartCtrl\ChartMouseListener.h" />
+    <ClInclude Include="ChartCtrl\ChartPointsArray.h" />
+    <ClInclude Include="ChartCtrl\ChartPointsSerie.h" />
+    <ClInclude Include="ChartCtrl\ChartScrollBar.h" />
+    <ClInclude Include="ChartCtrl\ChartSerie.h" />
+    <ClInclude Include="ChartCtrl\ChartSerieBase.h" />
+    <ClInclude Include="ChartCtrl\ChartSeriesMouseListener.h" />
+    <ClInclude Include="ChartCtrl\ChartStandardAxis.h" />
+    <ClInclude Include="ChartCtrl\ChartString.h" />
+    <ClInclude Include="ChartCtrl\ChartSurfaceSerie.h" />
+    <ClInclude Include="ChartCtrl\ChartTitle.h" />
+    <ClInclude Include="ChartCtrl\ChartXYSerie.h" />
+    <ClInclude Include="ChartCtrl\PointsOrdering.h" />
+    <ClInclude Include="CSVReader\CSVReader.hpp" />
+    <ClInclude Include="Filter\MyFilter.h" />
+    <ClInclude Include="qstevb.h" />
+    <ClInclude Include="qstevbDlg.h" />
+    <ClInclude Include="Resource.h" />
+    <ClInclude Include="stdafx.h" />
+    <ClInclude Include="targetver.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Algo\imu_st\imu_soft_st.cpp" />
+    <ClCompile Include="Algo\qst\dummy_gyro\dummyGyro.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Algo\qst\fusion_interface.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Algo\qst\qst_convert\qst_convert.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Algo\qst\qst_fastcali\qstFastCali.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Algo\qst\qst_fusion\imualgo_axis9.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Algo\qst\qst_magcali\ical_qst.c">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="ChartCtrl\ChartAxis.cpp" />
+    <ClCompile Include="ChartCtrl\ChartAxisLabel.cpp" />
+    <ClCompile Include="ChartCtrl\ChartBarSerie.cpp" />
+    <ClCompile Include="ChartCtrl\ChartCandlestickSerie.cpp" />
+    <ClCompile Include="ChartCtrl\ChartCrossHairCursor.cpp" />
+    <ClCompile Include="ChartCtrl\ChartCtrl.cpp" />
+    <ClCompile Include="ChartCtrl\ChartCursor.cpp" />
+    <ClCompile Include="ChartCtrl\ChartDateTimeAxis.cpp" />
+    <ClCompile Include="ChartCtrl\ChartDragLineCursor.cpp" />
+    <ClCompile Include="ChartCtrl\ChartFont.cpp" />
+    <ClCompile Include="ChartCtrl\ChartGanttSerie.cpp" />
+    <ClCompile Include="ChartCtrl\ChartGradient.cpp" />
+    <ClCompile Include="ChartCtrl\ChartGrid.cpp" />
+    <ClCompile Include="ChartCtrl\ChartLegend.cpp" />
+    <ClCompile Include="ChartCtrl\ChartLineSerie.cpp" />
+    <ClCompile Include="ChartCtrl\ChartLogarithmicAxis.cpp" />
+    <ClCompile Include="ChartCtrl\ChartPointsSerie.cpp" />
+    <ClCompile Include="ChartCtrl\ChartScrollBar.cpp" />
+    <ClCompile Include="ChartCtrl\ChartSerie.cpp" />
+    <ClCompile Include="ChartCtrl\ChartStandardAxis.cpp" />
+    <ClCompile Include="ChartCtrl\ChartSurfaceSerie.cpp" />
+    <ClCompile Include="ChartCtrl\ChartTitle.cpp" />
+    <ClCompile Include="ChartCtrl\ChartXYSerie.cpp" />
+    <ClCompile Include="CSerialPort\src\SerialPort.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="CSerialPort\src\SerialPortBase.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="CSerialPort\src\SerialPortInfo.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="CSerialPort\src\SerialPortInfoBase.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="CSerialPort\src\SerialPortInfoWinBase.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="CSerialPort\src\SerialPortWinBase.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="CSVReader\CSVReader.cpp" />
+    <ClCompile Include="Filter\MyFilter.cpp" />
+    <ClCompile Include="qstevb.cpp" />
+    <ClCompile Include="qstevbDlg.cpp" />
+    <ClCompile Include="stdafx.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="SubDialog.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="qstevb.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ChartCtrl\ChartBalloonLabel.inl" />
+    <None Include="ChartCtrl\ChartLabel.inl" />
+    <None Include="ChartCtrl\ChartPointsArray.inl" />
+    <None Include="ChartCtrl\ChartSerieBase.inl" />
+    <None Include="res\qstevb.rc2" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="res\qstevb.ico" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties RESOURCE_FILE="qstevb.rc" />
+    </VisualStudio>
+  </ProjectExtensions>
+</Project>

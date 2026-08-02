@@ -1,0 +1,22 @@
+
+在插件商店(按 Ctrl+Shift+X), 安装C/C++ Extension Pack
+按 Ctrl+Shift+P，输入 C/C++: Edit Configurations (UI)（编辑配置(UI)）。如果这个命令能打开图形界面，说明扩展是正常的。
+在里面将 “编译器路径” 手动填写为你的 cl.exe 路径，
+将 “IntelliSense 模式” 选为 windows-msvc-x64 即可。保存后，VS Code 会自动生成 c_cpp_properties.json。
+
+
+
+1. MSBuild 命令行编译（推荐）
+# Debug 编译
+msbuild qstevb.sln /p:Configuration=Debug /p:Platform=Win32
+# Release 编译
+msbuild qstevb.sln /p:Configuration=Release /p:Platform=Win32
+# 仅编译单个项目（而非整个解决方案）
+msbuild qstevb.vcxproj /p:Configuration=Debug /p:Platform=Win32
+
+2. 仅显示错误，精简输出
+msbuild qstevb.sln /p:Configuration=Debug /p:Platform=Win32 /clp:NoSummary;ErrorsOnly 2>&1 | Select-String "error"
+
+3. 清理后重新编译
+msbuild qstevb.sln /p:Configuration=Debug /p:Platform=Win32 /t:Clean,Build
+

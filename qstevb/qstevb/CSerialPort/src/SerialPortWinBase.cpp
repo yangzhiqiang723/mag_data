@@ -1,0 +1,882 @@
+﻿#include "SerialPortWinBase.h"
+#include "SerialPortListener.h"
+#include "ithread.hpp"
+#include <iostream>
+
+std::wstring stringToWString(const std::string &str)
+{
+    if (str.empty())
+    {
+        return std::wstring();
+    }
+
+    int size = MultiByteToWideChar(CP_ACP, 0, &str[0], (int)str.size(), NULL, 0);
+    std::wstring ret = std::wstring(size, 0);
+    MultiByteToWideChar(CP_ACP, 0, &str[0], (int)str.size(), &ret[0], size);
+
+    return ret;
+}
+
+CSerialPortWinBase::CSerialPortWinBase()
+    : m_portName()
+    , m_baudRate(itas109::BaudRate9600)
+    , m_parity(itas109::ParityNone)
+    , m_dataBits(itas109::DataBits8)
+    , m_stopbits(itas109::StopOne)
+    , m_flowControl(itas109::FlowNone)
+    , m_readBufferSize(4096)
+    , m_handle(INVALID_HANDLE_VALUE)
+    , m_monitorThread(INVALID_HANDLE_VALUE)
+    , overlapMonitor()
+    , m_overlapRead()
+    , m_overlapWrite()
+    , m_comConfigure()
+    , m_comTimeout()
+    , m_communicationMutex()
+    , m_isThreadRunning(false)
+    , p_buffer(new itas109::RingBuffer<char>(m_readBufferSize))
+{
+    overlapMonitor.Internal = 0;
+    overlapMonitor.InternalHigh = 0;
+    overlapMonitor.Offset = 0;
+    overlapMonitor.OffsetHigh = 0;
+    overlapMonitor.hEvent = CreateEvent(NULL, true, false, NULL);
+}
+
+CSerialPortWinBase::CSerialPortWinBase(const std::string &portName)
+    : m_portName()
+    , m_baudRate(itas109::BaudRate9600)
+    , m_parity(itas109::ParityNone)
+    , m_dataBits(itas109::DataBits8)
+    , m_stopbits(itas109::StopOne)
+    , m_flowControl(itas109::FlowNone)
+    , m_readBufferSize(4096)
+    , m_handle(INVALID_HANDLE_VALUE)
+    , m_monitorThread(INVALID_HANDLE_VALUE)
+    , overlapMonitor()
+    , m_overlapRead()
+    , m_overlapWrite()
+    , m_comConfigure()
+    , m_comTimeout()
+    , m_communicationMutex()
+    , m_isThreadRunning(false)
+    , p_buffer(new itas109::RingBuffer<char>(m_readBufferSize))
+{
+    overlapMonitor.Internal = 0;
+    overlapMonitor.InternalHigh = 0;
+    overlapMonitor.Offset = 0;
+    overlapMonitor.OffsetHigh = 0;
+    overlapMonitor.hEvent = CreateEvent(NULL, true, false, NULL);
+}
+
+CSerialPortWinBase::~CSerialPortWinBase()
+{
+    CloseHandle(overlapMonitor.hEvent);
+
+    if (p_buffer)
+    {
+        delete p_buffer;
+        p_buffer = NULL;
+    }
+}
+
+void CSerialPortWinBase::init(std::string portName,
+                              int baudRate /*= itas109::BaudRate::BaudRate9600*/,
+                              itas109::Parity parity /*= itas109::Parity::ParityNone*/,
+                              itas109::DataBits dataBits /*= itas109::DataBits::DataBits8*/,
+                              itas109::StopBits stopbits /*= itas109::StopBits::StopOne*/,
+                              itas109::FlowControl flowControl /*= itas109::FlowControl::FlowNone*/,
+                              unsigned int readBufferSize /*= 4096*/)
+{
+    m_portName = portName;
+    m_baudRate = baudRate;
+    m_parity = parity;
+    m_dataBits = dataBits;
+    m_stopbits = stopbits;
+    m_flowControl = flowControl;
+    m_readBufferSize = readBufferSize;
+
+    if (p_buffer)
+    {
+        delete p_buffer;
+        p_buffer = NULL;
+    }
+    p_buffer = new itas109::RingBuffer<char>(m_readBufferSize);
+}
+
+bool CSerialPortWinBase::openPort()
+{
+    itas109::IAutoLock lock(p_mutex);
+
+    bool bRet = false;
+
+    TCHAR *tcPortName = NULL;
+    std::string portName = "\\\\.\\" + m_portName; // support COM10 above \\\\.\\COM10
+#ifdef UNICODE
+    std::wstring wstr = stringToWString(portName);
+    tcPortName = const_cast<TCHAR *>(wstr.c_str());
+#else
+    tcPortName = const_cast<TCHAR *>(portName.c_str());
+#endif
+    unsigned long configSize = sizeof(COMMCONFIG);
+    m_comConfigure.dwSize = configSize;
+
+    DWORD dwFlagsAndAttributes = 0;
+    if (m_operateMode == itas109::/*OperateMode::*/ AsynchronousOperate)
+    {
+        dwFlagsAndAttributes += FILE_FLAG_OVERLAPPED;
+    }
+
+    if (!isOpened())
+    {
+        // get a handle to the port
+        m_handle = CreateFile(tcPortName,                   // communication port string (COMX)
+                              GENERIC_READ | GENERIC_WRITE, // read/write types
+                              0,                            // comm devices must be opened with exclusive access
+                              NULL,                         // no security attributes
+                              OPEN_EXISTING,                // comm devices must use OPEN_EXISTING
+                              dwFlagsAndAttributes,         // Async I/O or sync I/O
+                              NULL);
+
+        if (m_handle != INVALID_HANDLE_VALUE)
+        {
+            // get default parameter
+            //SetupComm(m_handle, 1024, 1024);	// yangzhiqiang
+            GetCommConfig(m_handle, &m_comConfigure, &configSize);
+            GetCommState(m_handle, &(m_comConfigure.dcb));
+
+            // set parameter
+            m_comConfigure.dcb.BaudRate = m_baudRate;
+            m_comConfigure.dcb.ByteSize = m_dataBits;
+            m_comConfigure.dcb.Parity = m_parity;
+            m_comConfigure.dcb.StopBits = m_stopbits;
+            // m_comConfigure.dcb.fDtrControl;
+            // m_comConfigure.dcb.fRtsControl;
+
+            m_comConfigure.dcb.fBinary = true;
+            m_comConfigure.dcb.fInX = false;
+            m_comConfigure.dcb.fOutX = false;
+            m_comConfigure.dcb.fAbortOnError = false;
+            m_comConfigure.dcb.fNull = false;
+
+            // setBaudRate(m_baudRate);
+            // setDataBits(m_dataBits);
+            // setStopBits(m_stopbits);
+            // setParity(m_parity);
+
+            setFlowControl(m_flowControl); // @todo
+#if 1
+            if (SetCommConfig(m_handle, &m_comConfigure, configSize))
+#else
+			if (SetCommState(m_handle, &m_comConfigure.dcb))
+#endif
+            {
+                // @todo
+                // Discards all characters from the output or input buffer of a specified communications resource. It
+                // can also terminate pending read or write operations on the resource.
+                PurgeComm(m_handle, PURGE_TXABORT | PURGE_TXCLEAR | PURGE_RXCLEAR | PURGE_RXABORT);
+
+                // init event driven approach
+                if (m_operateMode == itas109::/*OperateMode::*/ AsynchronousOperate)
+                {
+                    m_comTimeout.ReadIntervalTimeout = MAXDWORD;
+                    m_comTimeout.ReadTotalTimeoutMultiplier = 0;
+                    m_comTimeout.ReadTotalTimeoutConstant = 0;
+                    m_comTimeout.WriteTotalTimeoutMultiplier = 0;
+                    m_comTimeout.WriteTotalTimeoutConstant = 0;
+                    SetCommTimeouts(m_handle, &m_comTimeout);
+
+                    // set comm event
+                    // only need receive event
+                    if (SetCommMask(m_handle, EV_RXCHAR))
+                    {
+                        m_isThreadRunning = true;
+                        bRet = startThreadMonitor();
+
+                        if (!bRet)
+                        {
+                            m_isThreadRunning = false;
+                            m_lastError = itas109::/*SerialPortError::*/ SystemError;
+                        }
+                    }
+                    else
+                    {
+                        // Failed to set Comm Mask
+                        bRet = false;
+                        m_lastError = itas109::/*SerialPortError::*/ InvalidParameterError;
+                    }
+                }
+                else
+                {
+                    m_comTimeout.ReadIntervalTimeout = MAXDWORD;
+                    m_comTimeout.ReadTotalTimeoutMultiplier = 0;
+                    m_comTimeout.ReadTotalTimeoutConstant = 0;
+                    m_comTimeout.WriteTotalTimeoutMultiplier = 100;
+                    m_comTimeout.WriteTotalTimeoutConstant = 500;
+                    SetCommTimeouts(m_handle, &m_comTimeout);
+
+                    bRet = true;
+                }
+            }
+            else
+            {
+                // set com configure error
+                bRet = false;
+                m_lastError = itas109::/*SerialPortError::*/ InvalidParameterError;
+            }
+        }
+        else
+        {
+            //串口打开失败，增加提示信息
+            switch (GetLastError())
+            {
+                //串口不存在
+                case ERROR_FILE_NOT_FOUND:
+                {
+                    m_lastError = itas109::/*SerialPortError::*/ DeviceNotFoundError;
+
+                    break;
+                }
+                    //串口拒绝访问
+                case ERROR_ACCESS_DENIED:
+                {
+                    m_lastError = itas109::/*SerialPortError::*/ PermissionError;
+
+                    break;
+                }
+                default:
+                    m_lastError = itas109::/*SerialPortError::*/ UnknownError;
+                    break;
+            }
+        }
+    }
+    else
+    {
+        bRet = false;
+        m_lastError = itas109::/*SerialPortError::*/ OpenError;
+    }
+
+    if (!bRet)
+    {
+        closePort();
+    }
+
+    return bRet;
+}
+
+void CSerialPortWinBase::closePort()
+{
+    // Finished
+    if (isOpened())
+    {
+        stopThreadMonitor();
+
+        if (m_handle != INVALID_HANDLE_VALUE)
+        {
+            // stop all event
+            SetCommMask(m_handle, 0); // SetCommMask(m_handle,0) stop WaitCommEvent()
+
+            // Discards all characters from the output or input buffer of a specified communications resource. It can
+            // also terminate pending read or write operations on the resource.
+            PurgeComm(m_handle, PURGE_TXABORT | PURGE_TXCLEAR | PURGE_RXCLEAR | PURGE_RXABORT);
+
+            CloseHandle(m_handle);
+            m_handle = INVALID_HANDLE_VALUE;
+        }
+
+        ResetEvent(overlapMonitor.hEvent);
+    }
+}
+
+unsigned int __stdcall CSerialPortWinBase::commThreadMonitor(LPVOID pParam)
+{
+    // Cast the void pointer passed to the thread back to
+    // a pointer of CSerialPortWinBase class
+    CSerialPortWinBase *p_base = (CSerialPortWinBase *)pParam;
+
+    int iRet = 0;
+
+    DWORD dwError = 0;
+    COMSTAT comstat;
+
+    if (p_base)
+    {
+        DWORD eventMask = 0;
+
+        HANDLE m_mainHandle = p_base->getMainHandle();
+        OVERLAPPED m_overlapMonitor = p_base->getOverlapMonitor();
+
+        for (; p_base->isThreadRunning();)
+        {
+            eventMask = 0;
+            // https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-waitcommevent
+            if (!WaitCommEvent(m_mainHandle, &eventMask, &m_overlapMonitor))
+            {
+                if (ERROR_IO_PENDING == GetLastError())
+                {
+                    // method 1
+                    WaitForSingleObject(m_overlapMonitor.hEvent, INFINITE);
+
+                    // method 2
+                    // DWORD numBytes;
+                    // GetOverlappedResult(m_mainHandle, &m_overlapMonitor, &numBytes, TRUE);
+                }
+            }
+
+            if (eventMask & EV_RXCHAR)
+            {
+                // std::cout << "EV_RXCHAR" << std::endl;
+
+                // solve 线程中循环的低效率问题
+                ClearCommError(m_mainHandle, &dwError, &comstat);
+                if (comstat.cbInQue >= p_base->getMinByteReadNotify()) //设定字符数,默认为1
+                {
+                    char *data = NULL;
+                    data = new char[comstat.cbInQue];
+                    if (data)
+                    {
+                        if (p_base->p_buffer)
+                        {
+                            int len = p_base->readDataWin(data, comstat.cbInQue);
+                            p_base->p_buffer->write(data, len);
+
+#ifdef USE_CSERIALPORT_LISTENER
+                            if (p_base->p_readEvent)
+                            {
+                                p_base->p_readEvent->onReadEvent(p_base->getPortName().c_str(), p_base->p_buffer->getUsedLen());
+                            }
+#else
+                            p_base->readReady._emit();
+#endif
+                        }
+
+                        delete[] data;
+                        data = NULL;
+                    }
+                }
+            }
+        }
+    }
+    else
+    {
+        // point null
+        iRet = 0;
+    }
+
+    return iRet;
+}
+
+bool CSerialPortWinBase::isOpened()
+{
+    // Finished
+    return m_handle != INVALID_HANDLE_VALUE;
+}
+
+int CSerialPortWinBase::readDataWin(void *data, int size)
+{
+    itas109::IAutoLock lock(p_mutex);
+
+    DWORD numBytes = 0;
+
+    if (isOpened())
+    {
+        if (m_operateMode == itas109::/*OperateMode::*/ AsynchronousOperate)
+        {
+            m_overlapRead.Internal = 0;
+            m_overlapRead.InternalHigh = 0;
+            m_overlapRead.Offset = 0;
+            m_overlapRead.OffsetHigh = 0;
+            m_overlapRead.hEvent = CreateEvent(NULL, true, false, NULL);
+
+            if (!ReadFile(m_handle, (void *)data, (DWORD)size, &numBytes, &m_overlapRead))
+            {
+                if (ERROR_IO_PENDING == GetLastError())
+                {
+                    GetOverlappedResult(m_handle, &m_overlapRead, &numBytes, true);
+                }
+                else
+                {
+                    m_lastError = itas109::/*SerialPortError::*/ ReadError;
+                    numBytes = (DWORD)-1;
+                }
+            }
+
+            CloseHandle(m_overlapRead.hEvent);
+        }
+        else
+        {
+            if (ReadFile(m_handle, (void *)data, (DWORD)size, &numBytes, NULL))
+            {
+            }
+            else
+            {
+                m_lastError = itas109::/*SerialPortError::*/ ReadError;
+                numBytes = (DWORD)-1;
+            }
+        }
+    }
+    else
+    {
+        m_lastError = itas109::/*SerialPortError::*/ NotOpenError;
+        numBytes = (DWORD)-1;
+    }
+
+    return numBytes;
+}
+
+int CSerialPortWinBase::readData(void *data, int size)
+{
+    itas109::IAutoLock lock(p_mutex);
+
+    DWORD numBytes = 0;
+
+    if (isOpened())
+    {
+        if (m_operateMode == itas109::/*OperateMode::*/ AsynchronousOperate)
+        {
+            numBytes = p_buffer->read((char*)data, size);
+        }
+        else
+        {
+            if (ReadFile(m_handle, data, (DWORD)size, &numBytes, NULL))
+            {
+            }
+            else
+            {
+                m_lastError = itas109::/*SerialPortError::*/ ReadError;
+                numBytes = (DWORD)-1;
+            }
+        }
+    }
+    else
+    {
+        m_lastError = itas109::/*SerialPortError::*/ NotOpenError;
+        numBytes = (DWORD)-1;
+    }
+
+    return numBytes;
+}
+
+int CSerialPortWinBase::readAllData(void *data)
+{
+    int maxSize = 0;
+
+    if (m_operateMode == itas109::/*OperateMode::*/ AsynchronousOperate)
+    {
+        maxSize = p_buffer->getUsedLen();
+    }
+    else
+    {
+        maxSize = 1024; // Synchronous ClearCommError not work
+    }
+
+    return readData(data, maxSize);
+}
+
+int CSerialPortWinBase::readLineData(void *data, int size)
+{
+    itas109::IAutoLock lock(p_mutex);
+
+    DWORD numBytes = 0;
+
+    if (isOpened())
+    {
+    }
+    else
+    {
+        m_lastError = itas109::/*SerialPortError::*/ NotOpenError;
+        numBytes = (DWORD)-1;
+    }
+
+    return numBytes;
+}
+
+int CSerialPortWinBase::writeData(const void *data, int size)
+{
+    itas109::IAutoLock lock(p_mutex);
+
+    DWORD numBytes = 0;
+
+    if (isOpened())
+    {
+        // @todo maybe mutile thread not need this
+        // Discards all characters from the output or input buffer of a specified communications resource. It can also
+        // terminate pending read or write operations on the resource.
+        //::PurgeComm(m_handle, PURGE_TXABORT | PURGE_TXCLEAR | PURGE_RXCLEAR | PURGE_RXABORT);
+
+        if (m_operateMode == itas109::/*OperateMode::*/ AsynchronousOperate)
+        {
+            m_overlapWrite.Internal = 0;
+            m_overlapWrite.InternalHigh = 0;
+            m_overlapWrite.Offset = 0;
+            m_overlapWrite.OffsetHigh = 0;
+            m_overlapWrite.hEvent = CreateEvent(NULL, true, false, NULL);
+
+            if (!WriteFile(m_handle, (void *)data, (DWORD)size, &numBytes, &m_overlapWrite))
+            {
+                if (ERROR_IO_PENDING == GetLastError())
+                {
+                    GetOverlappedResult(m_handle, &m_overlapWrite, &numBytes, true);
+                }
+                else
+                {
+                    m_lastError = itas109::/*SerialPortError::*/ WriteError;
+                    numBytes = (DWORD)-1;
+                }
+            }
+
+            CloseHandle(m_overlapWrite.hEvent);
+        }
+        else
+        {
+            if (WriteFile(m_handle, (void *)data, (DWORD)size, &numBytes, NULL))
+            {
+            }
+            else
+            {
+                m_lastError = itas109::/*SerialPortError::*/ WriteError;
+                numBytes = (DWORD)-1;
+            }
+        }
+    }
+    else
+    {
+        m_lastError = itas109::/*SerialPortError::*/ NotOpenError;
+        numBytes = (DWORD)-1;
+    }
+
+    return numBytes;
+}
+
+void CSerialPortWinBase::setDebugModel(bool isDebug)
+{
+    //@todo
+}
+
+void CSerialPortWinBase::setReadIntervalTimeout(unsigned int msecs)
+{
+    m_readIntervalTimeoutMS = msecs;
+}
+
+void CSerialPortWinBase::setMinByteReadNotify(unsigned int minByteReadNotify)
+{
+    m_minByteReadNotify = minByteReadNotify;
+}
+
+int CSerialPortWinBase::getLastError() const
+{
+    return m_lastError;
+}
+
+void CSerialPortWinBase::clearError()
+{
+    m_lastError = itas109::/*SerialPortError::*/ NoError;
+}
+
+void CSerialPortWinBase::setPortName(std::string portName)
+{
+    // Windows : COM1
+    // Linux : /dev/ttyS0
+    m_portName = portName;
+}
+
+std::string CSerialPortWinBase::getPortName() const
+{
+    return m_portName;
+}
+
+void CSerialPortWinBase::setBaudRate(int baudRate)
+{
+    itas109::IAutoLock lock(p_mutex);
+    m_baudRate = baudRate;
+    m_comConfigure.dcb.BaudRate = m_baudRate;
+    SetCommConfig(m_handle, &m_comConfigure, sizeof(COMMCONFIG));
+}
+
+int CSerialPortWinBase::getBaudRate() const
+{
+    return m_baudRate;
+}
+
+void CSerialPortWinBase::setParity(itas109::Parity parity)
+{
+    itas109::IAutoLock lock(p_mutex);
+    m_parity = parity;
+
+    if (isOpened())
+    {
+        m_comConfigure.dcb.Parity = (unsigned char)parity;
+        switch (parity)
+        {
+            case itas109::/*Parity::*/ ParityNone:
+                m_comConfigure.dcb.fParity = FALSE;
+                break;
+            case itas109::/*Parity::*/ ParityOdd:
+                m_comConfigure.dcb.fParity = TRUE;
+                break;
+            case itas109::/*Parity::*/ ParityEven:
+                m_comConfigure.dcb.fParity = TRUE;
+                break;
+            case itas109::/*Parity::*/ ParitySpace:
+                if (m_dataBits == itas109::/*DataBits::*/ DataBits8)
+                {
+                    // Space parity with 8 data bits is not supported by POSIX systems
+                }
+                m_comConfigure.dcb.fParity = TRUE;
+                break;
+            case itas109::/*Parity::*/ ParityMark:
+                // Mark parity is not supported by POSIX systems
+                m_comConfigure.dcb.fParity = TRUE;
+                break;
+        }
+        SetCommConfig(m_handle, &m_comConfigure, sizeof(COMMCONFIG));
+    }
+}
+
+itas109::Parity CSerialPortWinBase::getParity() const
+{
+    return m_parity;
+}
+
+void CSerialPortWinBase::setDataBits(itas109::DataBits dataBits)
+{
+    itas109::IAutoLock lock(p_mutex);
+    m_dataBits = dataBits;
+
+    if (isOpened())
+    {
+        switch (dataBits)
+        {
+            case itas109::/*DataBits::*/ DataBits5: // 5 data bits
+                if (m_stopbits == itas109::/*StopBits::*/ StopTwo)
+                {
+                    // 5 Data bits cannot be used with 2 stop bits
+                }
+                else
+                {
+                    m_comConfigure.dcb.ByteSize = 5;
+                    SetCommConfig(m_handle, &m_comConfigure, sizeof(COMMCONFIG));
+                }
+                break;
+            case itas109::/*DataBits::*/ DataBits6: // 6 data bits
+                if (m_stopbits == itas109::/*StopBits::*/ StopOneAndHalf)
+                {
+                    // 6 Data bits cannot be used with 1.5 stop bits
+                }
+                else
+                {
+                    m_comConfigure.dcb.ByteSize = 6;
+                    SetCommConfig(m_handle, &m_comConfigure, sizeof(COMMCONFIG));
+                }
+                break;
+            case itas109::/*DataBits::*/ DataBits7: // 7 data bits
+                if (m_stopbits == itas109::/*StopBits::*/ StopOneAndHalf)
+                {
+                    // 7 Data bits cannot be used with 1.5 stop bits
+                }
+                else
+                {
+                    m_comConfigure.dcb.ByteSize = 7;
+                    SetCommConfig(m_handle, &m_comConfigure, sizeof(COMMCONFIG));
+                }
+                break;
+            case itas109::/*DataBits::*/ DataBits8: // 8 data bits
+                if (m_stopbits == itas109::/*StopBits::*/ StopOneAndHalf)
+                {
+                    // 8 Data bits cannot be used with 1.5 stop bits
+                }
+                else
+                {
+                    m_comConfigure.dcb.ByteSize = 8;
+                    SetCommConfig(m_handle, &m_comConfigure, sizeof(COMMCONFIG));
+                }
+                break;
+        }
+    }
+}
+
+itas109::DataBits CSerialPortWinBase::getDataBits() const
+{
+    return m_dataBits;
+}
+
+void CSerialPortWinBase::setStopBits(itas109::StopBits stopbits)
+{
+    itas109::IAutoLock lock(p_mutex);
+    m_stopbits = stopbits;
+
+    if (isOpened())
+    {
+        switch (m_stopbits)
+        {
+            case itas109::/*StopBits::*/ StopOne: // 1 stop bit
+                m_comConfigure.dcb.StopBits = ONESTOPBIT;
+                SetCommConfig(m_handle, &m_comConfigure, sizeof(COMMCONFIG));
+                break;
+            case itas109::/*StopBits::*/ StopOneAndHalf: // 1.5 stop bit - This is only for the Windows platform
+                if (m_dataBits == itas109::/*DataBits::*/ DataBits5)
+                {
+                    //	1.5 stop bits can only be used with 5 data bits
+                }
+                else
+                {
+                    m_comConfigure.dcb.StopBits = ONE5STOPBITS;
+                    SetCommConfig(m_handle, &m_comConfigure, sizeof(COMMCONFIG));
+                }
+                break;
+
+                /*two stop bits*/
+            case itas109::/*StopBits::*/ StopTwo: // 2 stop bit
+                if (m_dataBits == itas109::/*DataBits::*/ DataBits5)
+                {
+                    // 2 stop bits cannot be used with 5 data bits
+                }
+                else
+                {
+                    m_comConfigure.dcb.StopBits = TWOSTOPBITS;
+                    SetCommConfig(m_handle, &m_comConfigure, sizeof(COMMCONFIG));
+                }
+                break;
+        }
+    }
+}
+
+itas109::StopBits CSerialPortWinBase::getStopBits() const
+{
+    return m_stopbits;
+}
+
+void CSerialPortWinBase::setFlowControl(itas109::FlowControl flowControl)
+{
+    itas109::IAutoLock lock(p_mutex);
+
+    m_flowControl = flowControl;
+
+    if (isOpened())
+    {
+        switch (m_flowControl)
+        {
+            case itas109::/*FlowControl::*/ FlowNone: // No flow control
+
+                m_comConfigure.dcb.fOutxCtsFlow = FALSE;
+                m_comConfigure.dcb.fRtsControl = RTS_CONTROL_DISABLE;
+                m_comConfigure.dcb.fInX = FALSE;
+                m_comConfigure.dcb.fOutX = FALSE;
+                SetCommConfig(m_handle, &m_comConfigure, sizeof(COMMCONFIG));
+                break;
+
+            case itas109::/*FlowControl::*/ FlowSoftware: // Software(XON / XOFF) flow control
+                m_comConfigure.dcb.fOutxCtsFlow = FALSE;
+                m_comConfigure.dcb.fRtsControl = RTS_CONTROL_DISABLE;
+                m_comConfigure.dcb.fInX = TRUE;
+                m_comConfigure.dcb.fOutX = TRUE;
+                SetCommConfig(m_handle, &m_comConfigure, sizeof(COMMCONFIG));
+                break;
+
+            case itas109::/*FlowControl::*/ FlowHardware: // Hardware(RTS / CTS) flow control
+                m_comConfigure.dcb.fOutxCtsFlow = TRUE;
+                m_comConfigure.dcb.fRtsControl = RTS_CONTROL_HANDSHAKE;
+                m_comConfigure.dcb.fInX = FALSE;
+                m_comConfigure.dcb.fOutX = FALSE;
+                SetCommConfig(m_handle, &m_comConfigure, sizeof(COMMCONFIG));
+                break;
+        }
+    }
+}
+
+itas109::FlowControl CSerialPortWinBase::getFlowControl() const
+{
+    return m_flowControl;
+}
+
+void CSerialPortWinBase::setReadBufferSize(unsigned int size)
+{
+    itas109::IAutoLock lock(p_mutex);
+    if (isOpened())
+    {
+        m_readBufferSize = size;
+    }
+}
+
+unsigned int CSerialPortWinBase::getReadBufferSize() const
+{
+    return m_readBufferSize;
+}
+
+void CSerialPortWinBase::setDtr(bool set /*= true*/)
+{
+    itas109::IAutoLock lock(p_mutex);
+    if (isOpened())
+    {
+        if (set)
+        {
+            EscapeCommFunction(m_handle, SETDTR);
+        }
+        else
+        {
+            EscapeCommFunction(m_handle, CLRDTR);
+        }
+    }
+}
+
+void CSerialPortWinBase::setRts(bool set /*= true*/)
+{
+    itas109::IAutoLock lock(p_mutex);
+    if (isOpened())
+    {
+        if (set)
+        {
+            EscapeCommFunction(m_handle, SETRTS);
+        }
+        else
+        {
+            EscapeCommFunction(m_handle, CLRRTS);
+        }
+    }
+}
+
+OVERLAPPED CSerialPortWinBase::getOverlapMonitor()
+{
+    // Finished
+    return overlapMonitor;
+}
+
+HANDLE CSerialPortWinBase::getMainHandle()
+{
+    // Finished
+    return m_handle;
+}
+
+bool CSerialPortWinBase::isThreadRunning()
+{
+    return m_isThreadRunning;
+}
+
+bool CSerialPortWinBase::startThreadMonitor()
+{
+    // Finished
+
+    // start event thread monitor
+    bool bRet = false;
+    if (0 == itas109::i_thread_create(&m_monitorThread, NULL, commThreadMonitor, (LPVOID)this))
+    {
+        bRet = true;
+    }
+    else
+    {
+        bRet = false;
+    }
+
+    return bRet;
+}
+
+bool CSerialPortWinBase::stopThreadMonitor()
+{
+    // Finished
+
+    SetCommMask(m_monitorThread, 0);
+    m_isThreadRunning = false;
+    //_endthreadex(0);//not recommend
+
+    return true;
+}
