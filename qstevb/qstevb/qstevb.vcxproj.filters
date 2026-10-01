@@ -19,23 +19,20 @@
     <Filter Include="Filter">
       <UniqueIdentifier>{bea0b982-58e7-4372-bf87-2c8d76746d0a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Algo">
-      <UniqueIdentifier>{338dcfa7-f963-41ad-9bb5-5e5fd3a6f753}</UniqueIdentifier>
-    </Filter>
     <Filter Include="CSerialPort">
       <UniqueIdentifier>{10a14126-3ce3-4980-a6e8-418c56546354}</UniqueIdentifier>
     </Filter>
     <Filter Include="CSerialPort\src">
       <UniqueIdentifier>{1ee2c499-500d-4547-bb81-d21d1077d833}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Algo\imu_st">
-      <UniqueIdentifier>{f5bca158-c2ea-40bf-aec8-eb98e6480762}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Algo\qst">
-      <UniqueIdentifier>{41156783-86a2-4fbd-ad3d-e8ba26638958}</UniqueIdentifier>
-    </Filter>
     <Filter Include="CSVReader">
       <UniqueIdentifier>{b5e8c1db-a2cf-4f85-8c92-f76f4843a8df}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="usb_device">
+      <UniqueIdentifier>{5c54af62-b44f-4719-b433-246aa6b93b61}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Sensor">
+      <UniqueIdentifier>{29b65a16-e05c-427a-9ff4-bf35e58c8486}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -153,17 +150,35 @@
     <ClInclude Include="Filter\MyFilter.h">
       <Filter>Filter</Filter>
     </ClInclude>
-    <ClInclude Include="Algo\imu_st\imu_soft_st.h">
-      <Filter>Algo\imu_st</Filter>
-    </ClInclude>
-    <ClInclude Include="Algo\qst\fusion_interface.h">
-      <Filter>Algo\qst</Filter>
-    </ClInclude>
-    <ClInclude Include="Algo\qst\QstAlgoLog.h">
-      <Filter>Algo\qst</Filter>
-    </ClInclude>
     <ClInclude Include="CSVReader\CSVReader.hpp">
       <Filter>CSVReader</Filter>
+    </ClInclude>
+    <ClInclude Include="usb_device\usb_device.h">
+      <Filter>usb_device</Filter>
+    </ClInclude>
+    <ClInclude Include="usb_device\CH341DLL_EN.H">
+      <Filter>usb_device</Filter>
+    </ClInclude>
+    <ClInclude Include="Sensor\mag_hub.h">
+      <Filter>Sensor</Filter>
+    </ClInclude>
+    <ClInclude Include="Sensor\qmc6g00x.h">
+      <Filter>Sensor</Filter>
+    </ClInclude>
+    <ClInclude Include="Sensor\qmc6309.h">
+      <Filter>Sensor</Filter>
+    </ClInclude>
+    <ClInclude Include="Sensor\qmc6309v.h">
+      <Filter>Sensor</Filter>
+    </ClInclude>
+    <ClInclude Include="Sensor\qst_sensor_id.h">
+      <Filter>Sensor</Filter>
+    </ClInclude>
+    <ClInclude Include="Sensor\qmc6308.h">
+      <Filter>Sensor</Filter>
+    </ClInclude>
+    <ClInclude Include="Sensor\qst_algo_imu_cali.h">
+      <Filter>Sensor</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -266,32 +281,20 @@
     <ClCompile Include="CSerialPort\src\SerialPortWinBase.cpp">
       <Filter>CSerialPort\src</Filter>
     </ClCompile>
-    <ClCompile Include="Algo\imu_st\imu_soft_st.cpp">
-      <Filter>Algo\imu_st</Filter>
-    </ClCompile>
-    <ClCompile Include="Algo\qst\fusion_interface.c">
-      <Filter>Algo\qst</Filter>
-    </ClCompile>
-    <ClCompile Include="Algo\qst\dummy_gyro\dummyGyro.c">
-      <Filter>Algo\qst</Filter>
-    </ClCompile>
-    <ClCompile Include="Algo\qst\qst_convert\qst_convert.c">
-      <Filter>Algo\qst</Filter>
-    </ClCompile>
-    <ClCompile Include="Algo\qst\qst_magcali\ical_qst.c">
-      <Filter>Algo\qst</Filter>
-    </ClCompile>
-    <ClCompile Include="Algo\qst\qst_fastcali\qstFastCali.c">
-      <Filter>Algo\qst</Filter>
-    </ClCompile>
-    <ClCompile Include="Algo\qst\qst_fusion\imualgo_axis9.c">
-      <Filter>Algo\qst</Filter>
-    </ClCompile>
     <ClCompile Include="SubDialog.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="CSVReader\CSVReader.cpp">
       <Filter>CSVReader</Filter>
+    </ClCompile>
+    <ClCompile Include="usb_device\usb_device.cpp">
+      <Filter>usb_device</Filter>
+    </ClCompile>
+    <ClCompile Include="Sensor\mag_hub.cpp">
+      <Filter>Sensor</Filter>
+    </ClCompile>
+    <ClCompile Include="Sensor\qst_algo_imu_cali.c">
+      <Filter>Sensor</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -320,5 +323,10 @@
     <Image Include="res\qstevb.ico">
       <Filter>资源文件</Filter>
     </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="usb_device\lib\CH341DLL.LIB">
+      <Filter>usb_device</Filter>
+    </Library>
   </ItemGroup>
 </Project>

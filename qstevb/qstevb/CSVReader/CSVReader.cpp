@@ -287,3 +287,58 @@ string CSVReader::trim(const string& str)
 {
     return lTrim(rTrim(str));
 }
+
+bool CSVReader::setItem(int row, int col, const char* value) {
+    if (row < 0 || row >= data.size()) {
+        return false;
+    }
+
+    if (col < 0 || col >= data[row].size()) {
+        return false;
+    }
+
+    data[row][col] = (value != nullptr) ? value : "";
+    return true;
+}
+
+string CSVReader::escapeItem(const string& item) {
+    // 含逗号/制表符/引号/换行的字段需要用双引号包裹
+    if (item.find_first_of(",\"\t\n\r") == string::npos) {
+        return item;
+    }
+
+    string result = "\"";
+    for (size_t i = 0; i < item.size(); i++) {
+        if (item[i] == '"') {
+            // 内部双引号翻倍
+            result += "\"\"";
+        } else {
+            result += item[i];
+        }
+    }
+    result += "\"";
+    return result;
+}
+
+bool CSVReader::saveToFile(const char* filename) {
+    FILE* file = fopen(filename, "wt");
+    if (!file) {
+        return false;
+    }
+
+    for (size_t r = 0; r < data.size(); r++) {
+        string line = "";
+        for (size_t c = 0; c < data[r].size(); c++) {
+            if (c > 0) {
+                line += ",";
+            }
+            line += escapeItem(data[r][c]);
+        }
+        line += "\n";
+
+        fwrite(line.c_str(), 1, line.size(), file);
+    }
+
+    fclose(file);
+    return true;
+}

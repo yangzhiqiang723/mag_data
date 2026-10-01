@@ -1,8 +1,12 @@
-// comm_demo.cpp : ∂®“Â”¶”√≥Ã–Úµƒ¿‡––Œ™°£
+Ôªø// comm_demo.cpp : ÂÆö‰πâÂ∫îÁî®Á®ãÂ∫èÁöÑÁ±ªË°å‰∏∫„ÄÇ
 //
 
 #include "stdafx.h"
+
+#if defined(QST_USE_DEVICE)
 #include "usb_device.h"
+
+#pragma comment(lib, "CH341DLL.LIB")
 
 #define USB_DEVICE_LOG		_cprintf
 #define I2C_RETRY			10		// old 100
@@ -15,7 +19,6 @@ static usb_device_t device_info =
 	FALSE,
 	0,
 	INVALID_HANDLE_VALUE,
-	0,
 
 	FALSE,
 	INVALID_HANDLE_VALUE,
@@ -37,30 +40,26 @@ int usb_open_device(void)
 		if(device_info.mCh341Handle != INVALID_HANDLE_VALUE)
 			return DEVICE_CH341A;
 		else
-			return DEVICE_STM32F103;
+			return DEVICE_NONE;
 	}
 	else
 	{
 		if(device_info.mCh341Handle == INVALID_HANDLE_VALUE)
 		{
 			device_info.mCh341Index = 0;
-			device_info.mCh341Handle = USBIO_OpenDevice(device_info.mCh341Index);
+			device_info.mCh341Handle = CH341OpenDevice(device_info.mCh341Index);
 		}
 		if(device_info.mCh341Handle != INVALID_HANDLE_VALUE)
 		{
 			USB_DEVICE_LOG("ch341 open OK!\n");
 			device_info.usb_open = TRUE;
-			return DEVICE_CH341A;			
+			return DEVICE_CH341A;
 		}
 		else
 		{
-			device_info.mStm32Index = 0;
-			device_info.usb_open = OpenUsb(device_info.mStm32Index);
-			if(device_info.usb_open)
-			{		
-				USB_DEVICE_LOG("stm32 open OK!\n");
-				return DEVICE_STM32F103;
-			}
+			USB_DEVICE_LOG("ch341 open FAIL!\n");
+			device_info.usb_open = FALSE;
+			return USB_NONE;
 		}
 	}
 
@@ -73,18 +72,11 @@ BOOL usb_close_device(void)
 	{
 		if(device_info.mCh341Handle!=INVALID_HANDLE_VALUE)
 		{
-			USBIO_CloseDevice(device_info.mCh341Index);
+			CH341CloseDevice(device_info.mCh341Index);
 			device_info.mCh341Handle=INVALID_HANDLE_VALUE;
 			device_info.usb_open = FALSE;			
 			device_info.device = DEVICE_NONE;
 			USB_DEVICE_LOG("ch341 close OK!\n");
-		}
-		else
-		{
-			CloseUSB(device_info.mStm32Index);
-			device_info.usb_open = FALSE;
-			device_info.device = DEVICE_NONE;
-			USB_DEVICE_LOG("stm32 close OK!\n");
 		}
 	}
 
@@ -199,7 +191,7 @@ int com_open_device(int com_num)
 			buf_wr[3] = 0x1;
 			buf_wr[4] = 0x00;
 			buf_wr[5] = 0x50;
-			com_status = WriteFile(device_info.hCom, buf_wr, 6, &len, NULL);  ///strlen(buf_wr) ’‚∏ˆª·”–Œ Ã‚
+			com_status = WriteFile(device_info.hCom, buf_wr, 6, &len, NULL);  ///strlen(buf_wr) Ëøô‰∏™‰ºöÊúâÈóÆÈ¢ò
 			Sleep(100);
 
 			//here we change the baut rate to 115200
@@ -211,7 +203,7 @@ int com_open_device(int com_num)
 			dcb.Parity = NOPARITY;
 			dcb.StopBits = ONESTOPBIT;
 			if(!SetCommState(device_info.hCom, &dcb))
-				USB_DEVICE_LOG("¥Æø⁄≤Œ ˝…Ë÷√ ß∞‹\n");
+				USB_DEVICE_LOG("‰∏≤Âè£ÂèÇÊï∞ËÆæÁΩÆÂ§±Ë¥•\n");
 			#if 1			
 			timeouts.ReadIntervalTimeout = 1; 
 			timeouts.ReadTotalTimeoutMultiplier = 2; 
@@ -244,7 +236,7 @@ int com_open_device(int com_num)
 			while(retry_count)
 			{
 				com_status = ReadFile(device_info.hCom, buf_wr, 1, &len, NULL);
-				if(com_status && (len==1)) // ’µΩ ˝æ›   
+				if(com_status && (len==1)) //Êî∂Âà∞Êï∞ÊçÆ   
 				{
 					break;
 					if(buf_wr[0] == 0x40)
@@ -317,31 +309,31 @@ BOOL i2c_init(int device, int rate)
 
 	if(device == DEVICE_CH341A)
 	{	
-		if(device_info.mCh341Handle)
-		{
-			USBIO_CloseDevice(device_info.mCh341Index);
-			device_info.mCh341Handle = INVALID_HANDLE_VALUE;
-		}
+		//if(device_info.mCh341Handle)
+		//{
+		//	CH341CloseDevice(device_info.mCh341Index);
+		//	device_info.mCh341Handle = INVALID_HANDLE_VALUE;
+		//}
 		if(device_info.mCh341Handle==INVALID_HANDLE_VALUE)
 		{
-			device_info.mCh341Handle = USBIO_OpenDevice(device_info.mCh341Index);
+			device_info.mCh341Handle = CH341OpenDevice(device_info.mCh341Index);
 		}
-		USB_DEVICE_LOG("mCh341Handle = %d \n", (int)device_info.mCh341Handle);
+		USB_DEVICE_LOG("i2c_init mCh341Handle = %d rate=%d\r\n", (int)device_info.mCh341Handle, rate);
 		if(device_info.mCh341Handle != INVALID_HANDLE_VALUE)
 		{
 			device_info.usb_open = TRUE;
 			//0x81-100k 0x82-400k 0x83-750k
 			if(rate == 20*1000)
-				USBIO_SetStream(device_info.mCh341Index, 0x80);
+				CH341SetStream(device_info.mCh341Index, 0x80);
 			else if(rate == 100*1000)
-				USBIO_SetStream(device_info.mCh341Index, 0x81);
+				CH341SetStream(device_info.mCh341Index, 0x81);
 			else if(rate == 400*1000)
-				USBIO_SetStream(device_info.mCh341Index, 0x82);
+				CH341SetStream(device_info.mCh341Index, 0x82);
 			else if(rate == 750*1000)
-				USBIO_SetStream(device_info.mCh341Index, 0x83);
+				CH341SetStream(device_info.mCh341Index, 0x83);
 			else
-				USBIO_SetStream(device_info.mCh341Index, 0x81);
-			// …Ë÷√÷–∂œ£¨INTΩ≈…œ…˝—ÿ£¨÷¥––ªÿµ˜∫Ø ˝°£
+				CH341SetStream(device_info.mCh341Index, 0x81);
+			// ËÆæÁΩÆ‰∏≠Êñ≠ÔºåINTËÑö‰∏äÂçáÊ≤øÔºåÊâßË°åÂõûË∞ÉÂáΩÊï∞„ÄÇ
 			//USBIO_SetIntRoutine(device_info.mCh341Index,ch341_int_callback);
 		}
 		else
@@ -350,34 +342,7 @@ BOOL i2c_init(int device, int rate)
 			USB_DEVICE_LOG("CH341A open fail!\n");
 		}
 	}
-	else if(device == DEVICE_STM32F103)
-	{
-		if(device_info.usb_open == FALSE)
-		{
-			status = OpenUsb(device_info.mStm32Index);
-			device_info.usb_open = status;
-		}
-		USB_DEVICE_LOG("stm32f103 open status = %d \n", status);
-		if(device_info.usb_open == TRUE)
-		{
-			device_info.usb_open = TRUE;
-			if(rate == 1*1000)
-				ConfigIICParam(IIC_Rate_1K, device_info.mStm32Index);
-			else if(rate == 10*1000)
-				ConfigIICParam(IIC_Rate_10K, device_info.mStm32Index);
-			else if(rate == 100*1000)
-				ConfigIICParam(IIC_Rate_100K, device_info.mStm32Index);
-			else if(rate == 400*1000)
-				ConfigIICParam(IIC_Rate_400K, device_info.mStm32Index);
-			else
-				ConfigIICParam(IIC_Rate_400K, device_info.mStm32Index);
-		}
-		else
-		{
-			device_info.usb_open = FALSE;
-			USB_DEVICE_LOG("STM32F103 open fail!\n");
-		}
-	}
+
 	device_info.protocol = USB_I2C;
 	device_info.device = device;
 	memset(device_info.buf, 0, sizeof(device_info.buf));
@@ -393,19 +358,19 @@ BOOL spi_init(int device, unsigned int mode)
 	{
 		if(device_info.mCh341Handle)
 		{
-			USBIO_CloseDevice(device_info.mCh341Index);
+			CH341CloseDevice(device_info.mCh341Index);
 			device_info.mCh341Handle = INVALID_HANDLE_VALUE;
 		}
 		if(device_info.mCh341Handle==INVALID_HANDLE_VALUE)
 		{
-			device_info.mCh341Handle = USBIO_OpenDevice(device_info.mCh341Index);
+			device_info.mCh341Handle = CH341OpenDevice(device_info.mCh341Index);
 		}
 		USB_DEVICE_LOG("mCh341Handle = %d \n", (int)device_info.mCh341Handle);
 		if(device_info.mCh341Handle != INVALID_HANDLE_VALUE)
 		{
 			device_info.usb_open = TRUE;
-			USBIO_SetStream(device_info.mCh341Index,0x82);
-			USBIO_Set_D5_D0(device_info.mCh341Index,0xff,0x00); 	// add by yangzhiqiang
+			CH341SetStream(device_info.mCh341Index,0x82);
+			CH341Set_D5_D0(device_info.mCh341Index,0xff,0x00); 	// add by yangzhiqiang
 		}
 		else
 		{
@@ -413,25 +378,7 @@ BOOL spi_init(int device, unsigned int mode)
 			USB_DEVICE_LOG("CH341A open fail!\n");
 		}
 	}
-	else if(device == DEVICE_STM32F103)
-	{
-		if(device_info.usb_open == FALSE)
-		{
-			status = OpenUsb(device_info.mStm32Index);
-			device_info.usb_open = status;
-		}
-		USB_DEVICE_LOG("stm32f103 open status = %d \n", status);
-		if(device_info.usb_open == TRUE)
-		{
-			device_info.usb_open = TRUE;
-			ConfigSPIParam(SPI_Rate_4_5M, SPI_MSB, mode, device_info.mStm32Index);
-		}
-		else
-		{
-			device_info.usb_open = FALSE;
-			USB_DEVICE_LOG("STM32F103 open fail!\n");
-		}
-	}
+
 	device_info.protocol = USB_SPI;
 	device_info.device = device;
 	memset(device_info.buf, 0, sizeof(device_info.buf));
@@ -441,25 +388,7 @@ BOOL spi_init(int device, unsigned int mode)
 
 void spi_config(unsigned int rate, unsigned int mode)
 {
-	if(device_info.device == DEVICE_STM32F103)
-	{
-		if(device_info.usb_open == TRUE)
-		{
-			if(rate < 3*1000*1000)
-				ConfigSPIParam(SPI_Rate_2_25M, SPI_MSB, mode, device_info.mStm32Index);
-			else if(rate < 5*1000*1000)
-				ConfigSPIParam(SPI_Rate_4_5M, SPI_MSB, mode, device_info.mStm32Index);
-			else if(rate < 10*1000*1000)
-				ConfigSPIParam(SPI_Rate_9M, SPI_MSB, mode, device_info.mStm32Index);
-			else
-				ConfigSPIParam(SPI_Rate_18M, SPI_MSB, mode, device_info.mStm32Index);
-		}
-		else
-		{
-			device_info.usb_open = FALSE;
-			USB_DEVICE_LOG("STM32F103 not open!\n");
-		}
-	}
+
 }
 
 BOOL i2c_write_reg(unsigned char slave, unsigned char addr, unsigned char value)
@@ -468,15 +397,8 @@ BOOL i2c_write_reg(unsigned char slave, unsigned char addr, unsigned char value)
 
 	if(device_info.device == DEVICE_CH341A)
 	{
-		status = USBIO_WriteI2C(device_info.mCh341Index, slave, addr, value);
+		status = CH341WriteI2C(device_info.mCh341Index, slave, addr, value);
 		Sleep(2);	// add by yangzhiqiang 0819
-	}
-	else if(device_info.device == DEVICE_STM32F103)
-	{
-		device_info.buf[0] = slave<<1;
-		device_info.buf[1] = addr;
-		device_info.buf[2] = value;
-		status = IICSendData(TRUE, device_info.buf, 3, 1, device_info.mStm32Index);
 	}
 	else if(device_info.device == DEVICE_CP2102)
 	{
@@ -520,16 +442,7 @@ BOOL i2c_read_reg(unsigned char slave, unsigned char addr, unsigned char *buf, u
 	{
 		device_info.buf[0] = slave<<1;
 		device_info.buf[1] = addr;
-		status = USBIO_StreamI2C(device_info.mCh341Index, 2, device_info.buf, len, buf);
-	}
-	else if(device_info.device == DEVICE_STM32F103)
-	{
-		device_info.buf[0] = slave<<1;
-		device_info.buf[1] = addr;
-		status = IICSendData(TRUE, device_info.buf, 2, 0, device_info.mStm32Index);
-		device_info.buf[0] = (slave<<1)|0x01;
-		status = IICSendData(TRUE, device_info.buf, 1, 0, device_info.mStm32Index);
-		status = IICRcvData(buf, len, 1, device_info.mStm32Index);
+		status = CH341StreamI2C(device_info.mCh341Index, 2, device_info.buf, len, buf);
 	}
 	else if(device_info.device == DEVICE_CP2102)
 	{
@@ -584,14 +497,7 @@ BOOL i2c_write_buf(unsigned char slave, unsigned char *buf, unsigned short len)
 	{
 		device_info.buf[0] = slave<<1;
 		memcpy(&device_info.buf[1], buf, len);
-		status = USBIO_StreamI2C(device_info.mCh341Index, len+1, device_info.buf, 0, NULL);
-	}
-	else if(device_info.device == DEVICE_STM32F103)
-	{
-		device_info.buf[0] = slave<<1;
-		memcpy(&device_info.buf[1], buf, len);
-
-		status = IICSendData(TRUE, device_info.buf, len+1, TRUE, device_info.mStm32Index);
+		status = CH341StreamI2C(device_info.mCh341Index, len+1, device_info.buf, 0, NULL);
 	}
 	else if(device_info.device == DEVICE_CP2102)
 	{
@@ -635,13 +541,7 @@ BOOL i2c_read_buf(unsigned char slave, unsigned char *buf, unsigned short len)
 	if(device_info.device == DEVICE_CH341A)
 	{
 		device_info.buf[0] = slave<<1;
-		status = USBIO_StreamI2C(device_info.mCh341Index, 1, device_info.buf, len, buf);
-	}
-	else if(device_info.device == DEVICE_STM32F103)
-	{
-		device_info.buf[0] = (slave<<1)|0x01;
-		status = IICSendData(TRUE, device_info.buf, 1, FALSE, device_info.mStm32Index);
-		status = IICRcvData(buf, len, 1, device_info.mStm32Index);
+		status = CH341StreamI2C(device_info.mCh341Index, 1, device_info.buf, len, buf);
 	}
 	else if(device_info.device == DEVICE_CP2102)
 	{
@@ -696,14 +596,9 @@ BOOL spi_write_reg(unsigned char addr, unsigned char value)
 	{
 		device_info.buf[0] = addr;
 		device_info.buf[1] = value;
-		status = USBIO_StreamSPI4(device_info.mCh341Index, 0x80, 2, device_info.buf);		// use CS0
+		status = CH341StreamSPI4(device_info.mCh341Index, 0x80, 2, device_info.buf);		// use CS0
 	}
-	else if(device_info.device == DEVICE_STM32F103)
-	{
-		device_info.buf[0] = addr;
-		device_info.buf[1] = value;
-		status = SPISendData(0, 1, device_info.buf, 2, device_info.mStm32Index);
-	}
+
 	return status;
 }
 
@@ -714,15 +609,10 @@ BOOL spi_read_reg(unsigned char addr, unsigned char *buf, unsigned short len)
 	if(device_info.device == DEVICE_CH341A)
 	{
 		device_info.buf[0] = addr;
-		status = USBIO_StreamSPI4(device_info.mCh341Index, 0x80, len+1, device_info.buf);		// use CS0
+		status = CH341StreamSPI4(device_info.mCh341Index, 0x80, len+1, device_info.buf);		// use CS0
 		memcpy(buf, &device_info.buf[1], len);
 	}
-	else if(device_info.device == DEVICE_STM32F103)
-	{
-		device_info.buf[0] = addr;
-		status = SPISendData(0, 0, device_info.buf, 1, device_info.mStm32Index);
-		status = SPIRcvData(0, 1, buf, len, device_info.mStm32Index);
-	}
+
 	return status;
 }
 
@@ -762,22 +652,11 @@ BOOL drvice_read_reg(unsigned char slave, unsigned char addr, unsigned char *buf
 
 BOOL device_write_io(unsigned char value)
 {
-	int index;
 	BOOL status;
 
 	if(device_info.device == DEVICE_CH341A)
 	{
-		status = USBIO_Set_D5_D0(device_info.mCh341Index, 0x3f, 0x3f&value);
-	}
-	else if(device_info.device == DEVICE_STM32F103)
-	{
-		for(index=0; index<8; index++)
-		{
-			if((value)&(1<<index))
-				status = IOSetAndRead(index, 1, 1, device_info.mStm32Index);
-			else
-				status = IOSetAndRead(index, 1, 0, device_info.mStm32Index);
-		}
+		status = CH341Set_D5_D0(device_info.mCh341Index, 0x3f, 0x3f&value);
 	}
 
 	return status;
@@ -800,9 +679,9 @@ void device_register_irq(irq_callback irq_fun)
 {
 	if(device_info.device == DEVICE_CH341A)
 	{
-		USBIO_SetIntRoutine(device_info.mCh341Index, ch341_irq_callback);
+		CH341SetIntRoutine(device_info.mCh341Index, ch341_irq_callback);
 		device_info.irq1_func = irq_fun;
 	}
 }
 
-
+#endif

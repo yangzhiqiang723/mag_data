@@ -1,9 +1,9 @@
 #ifndef USB_DEVICE_H
 #define USB_DEVICE_H
 
+#include <cstdint>
 #include "conio.h"
-#include "USBIOX.H"
-#include "USB2UARTSPIIICDLL.h"
+#include "CH341DLL_EN.H"
 
 enum
 {
@@ -18,7 +18,6 @@ enum
 {
 	DEVICE_NONE,
 	DEVICE_CH341A,
-	DEVICE_STM32F103,
 	DEVICE_CP2102,
 	DEVICE_MAX,
 };
@@ -32,8 +31,7 @@ typedef struct
 	//unsigned char slave;
 	BOOL			usb_open;
 	UINT			mCh341Index;
-	HANDLE			mCh341Handle;	
-	UINT			mStm32Index;
+	HANDLE			mCh341Handle;
 	// cp2102 com port
 	BOOL			com_open;
 	HANDLE			hCom;

@@ -2,7 +2,7 @@
  *
  *	ChartCtrl.h
  *
- *	Written by Cédric Moonen (cedric_moonen@hotmail.com)
+ *	Written by cedric Moonen (cedric_moonen@hotmail.com)
  *
  *
  *
