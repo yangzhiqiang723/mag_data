@@ -1,0 +1,5 @@
+1,0,0,soft mag row1
+0,1,0,soft mag row2
+0,0,1,soft mag row3
+-0.060000,-0.058667,-0.102999,acc bias
+-0.020952,0.007655,-0.005343,gyro bias
